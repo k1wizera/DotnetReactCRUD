@@ -1,93 +1,91 @@
-﻿import React, { Component } from 'react'
-import { useParams } from 'react-router-dom';
-
+﻿import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export class Produto {
-
     constructor() {
         this.id = 0;
         this.descricao = "";
     }
 }
-export class AddProduto extends Component {
 
-    constructor(props) {
-        super(props);
-        this.state = { title: "", produto: new Produto(), loading: true }
-        this.inicialize();
+export function AddProduto() {
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const [title, setTitle] = useState("");
+    const [produto, setProduto] = useState(new Produto());
+    const [loading, setLoading] = useState(true);
 
-        this.handleSave = this.handleSave.bind(this);
-        this.handleCancel = this.handleCancel.bind(this);
-    }
-
-    async inicialize() {
-
-        var id = this.props.match.params["id"];
-
-        if (id > 0) {
-            const response = await fetch('https://localhost:7058/api/produtos/');
-            const data = await response.json();
-            this.setState({ title: "Edit", produto: data, loading: false });
+    useEffect(() => {
+        async function fetchData() {
+            if (id > 0) {
+                const response = await fetch(`https://localhost:7058/api/produtos/${id}`);
+                const data = await response.json();
+                setTitle("Editar");
+                setProduto(data);
+            } else {
+                setTitle("Criar");
+                setProduto(new Produto());
+            }
+            setLoading(false);
         }
-        else {
-            this.state = { title: "Create", produtos: new Produto(), loading: false }
-        }
-    }
+        fetchData();
+    }, [id]);
 
-
-    render() {
-        let contents = this.state.loading
-            ? <p><em> Carregando ...</em></p>
-            : this.renderCreateForm();
-
-        return (
-            <div>
-                <h1>{this.state.title}</h1>
-                <h3>Produto</h3>
-
-                {contents}
-            </div>
-        );
-    }
-
-    async handleSave(event) {
+    async function handleSave(event) {
         event.preventDefault();
 
         const data = new FormData(event.target);
 
-        if (this.state.produto.id) {
-            const response1 = await fetch('https://localhost:7058/api/produtos/' + this.state.produto.id, { method: 'PUT', body: data });
-            this.props.history.push('/fetch-produto');
-        }
-        else {
-            const response2 = await fetch('https://localhost:7058/api/produtos/', { method: 'POST', body: data });
-            this.props.history.push('/fetch-produto');
+        if (produto.id) {
+            const response = await fetch(`https://localhost:7058/api/produtos/${produto.id}`, {
+                method: 'PUT',
+                body: data,
+            });
+            navigate('/fetch-produto');
+        } else {
+            const response = await fetch('https://localhost:7058/api/produtos/', {
+                method: 'POST',
+                body: data,
+            });
+            navigate('/fetch-produto');
         }
     }
 
-    handleCancel(event) {
+    function handleCancel(event) {
         event.preventDefault();
-        this.props.history.push('/fetch-produto');
+        navigate('/fetch-produto');
     }
 
-    renderCreateForm() {
+    function renderCreateForm() {
         return (
-            <form onSubmit={this.handleSave}>
+            <form onSubmit={handleSave}>
                 <div className="form-group row">
-                    <input type="hidden" name="id" value={this.state.produto.id} />
+                    <input type="hidden" name="id" defaultValue={produto.id} />
                 </div>
                 <div className="form-group row">
                     <div className="col-md-6">
-                        <input className="form-control" type="text" name="descricao" defaultValue={this.state.produto.descricao} required />
+                        <input className="form-control" type="text" name="descricao" defaultValue={produto.descricao} required />
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <button type="submit" className="btn btn-success" value={this.state.produto.id}>Salvar</button>
-                    <button className="btn btn-danger" onClick={this.handleCancel}>Cancelar</button>
+                    <button type="submit" className="btn btn-success" value={produto.id}>
+                        Salvar
+                    </button>
+                    <button className="btn btn-danger" onClick={handleCancel}>
+                        Cancelar
+                    </button>
                 </div>
             </form>
         );
     }
-    
+
+    return (
+        <div>
+            <h1>{title}</h1>
+            <h3>Produto</h3>
+            {loading ? <p><em>Carregando...</em></p> : renderCreateForm()}
+        </div>
+    );
 }
+
